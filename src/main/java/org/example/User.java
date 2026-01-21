@@ -1,17 +1,30 @@
 package org.example;
 
 public class User {
-    private String username;
+    private int id;
     private String password;
+    private String username;
+    private String email;
     private String tel;
-    private int OTP;
 
-    public int getOTP() {
-        return OTP;
+    public String getPassword() {
+        return password;
     }
 
-    public void setOTP(int OTP) {
-        this.OTP = OTP;
+    public int getId() {
+        return id;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public String getUserName() {
@@ -22,15 +35,13 @@ public class User {
         this.username = username;
     }
 
-    public User(String username, String password, String tel) {
+    public User(int id,String username,String password, String email, String tel) {
+        this.id=id;
         this.username = username;
         this.password = password;
+        this.email = email;
         this.tel = tel;
 
-    }
-
-    public String getPassword() {
-        return password;
     }
 
     public String getTel() {
@@ -41,7 +52,4 @@ public class User {
         this.tel = tel;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
-    }
 }

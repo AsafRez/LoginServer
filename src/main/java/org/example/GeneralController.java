@@ -1,6 +1,9 @@
 package org.example;
 
-
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.example.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
@@ -10,59 +13,87 @@ import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import org.example.DbUtils;
+import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.web.SecurityFilterChain;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5174")
+@CrossOrigin(origins = "http://localhost:5173")
 public class GeneralController {
-    private List<User> usersLIST;
-
+    @Autowired
+    private DbUtils dbUtils;
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     @PostConstruct
     public void init() {
-        usersLIST.add(new User("admin", "admin","0546377362"));
     }
 
-    @Autowired
-//    private DbUtils dbUtils;
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .csrf().disable() // ביטול הגנת CSRF שחוסמת בקשות מ-React
+                .cors().and()      // הפעלת תמיכה ב-CORS בתוך מערכת האבטחה
+                .authorizeRequests()
+                .antMatchers("/Register").permitAll() // אפשר לכולם להירשם
+                .anyRequest().permitAll(); // זמנית, אפשר הכל כדי לוודא שזה עובד
 
-
+        return http.build();
+    }
     @RequestMapping("/Register")
-    public boolean Register(String username, String password, String tel) {
-        if (tel.isBlank() || username.isBlank() || password.isBlank() || password.length() < 4 || username.length() < 4) {
+    public boolean Register(String username, String password,String email, String phone) {
+        if (phone.isBlank() || username.isBlank() || password.isBlank() ||email.isBlank()|| password.length() < 4 || username.length() < 4) {
             return false;
         } else {
-            if (checkUsername(username)) {
-                this.usersLIST.add(new User(username, password, tel));
-                System.out.println(usersLIST.size());
-            } else {
+            String hashedPassword = passwordEncoder.encode(password);
+            if (!checkUsername(username)) {
                 return false;
+            } else {
+                dbUtils.insertUser(username, hashedPassword, email, phone);
+                return true;
             }
-            return true;
         }
     }
 
     private boolean checkUsername(String username) {
-        for (User user : usersLIST) {
+        List<User> currentUsers=dbUtils.getAllUsers();
+        for (User user : currentUsers) {
             if(user.getUserName().equals(username)) {
                 return false;
             }
         }
         return true;
     }
+    @RequestMapping("/save-to-DB")
+    public void saveToDB(
+            @RequestParam("ticks") List<String> ticks,
+            @RequestParam("userid") int userid) {
+
+        for(String tick : ticks) {
+            dbUtils.insertTicker(tick, userid);
+        }
+    }
+
+    @RequestMapping("/Load-From-DB")
+    public List<Stock> loadFromDB(int userid) {
+        List<Stock> tickers=dbUtils.loadAllStocksPerUser(userid);
+        System.out.println("List content: " + tickers);
+        return tickers;
+    }
     @RequestMapping("/Login")
-    public boolean Login(String username, String password) {
+    public int Login(String username, String password) {
         if (username.isBlank()||password.isBlank()) {
-            return false;
+            return 0;
         }else{
+            String hashedPassword = passwordEncoder.encode(password);
+            List<User> usersLIST=dbUtils.getAllUsers();
             for(User user:usersLIST) {
-                if(user.getUserName().equals(username)&&user.getPassword().equals(password)) {
-                    user.setOTP(generateOTP());
-                    sendSMS(user.getTel(),user.getOTP());
-                }else{
-                  return false;
+                boolean isMatch = passwordEncoder.matches(password,user.getPassword());
+                if(user.getUserName().equals(username)&&isMatch) {
+                    return user.getId();
                 }
             }
 
-            return true;}
+            return 0;}
     }
 
 
