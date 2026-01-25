@@ -1,6 +1,7 @@
-package org.example;
+package org.example.Utils;
 
-import com.github.javafaker.DateAndTime;
+import org.example.Classes.Stock;
+import org.example.Classes.User;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -27,25 +28,36 @@ public class DbUtils {
             e.printStackTrace();
         }
     }
-    public void insertTickerUser(int StockId,int UserId) {
+    public boolean insertTickerUser(int StockId,int UserId) {
         try{
-            PreparedStatement ps = this.connection.prepareStatement("INSERT INTO user_stock (User_id,Stock_id) VALUES(?,?)");
+            PreparedStatement ps=this.connection.prepareStatement("SELECT * FROM user_stock where user_id=? AND stock_id=?");
             ps.setInt(1,UserId);
             ps.setInt(2,StockId);
-            ps.executeUpdate();
+            ResultSet rs=ps.executeQuery();
+            if(!rs.next()){
+            ps = this.connection.prepareStatement("INSERT INTO user_stock (User_id,Stock_id) VALUES(?,?)");
+            ps.setInt(1,UserId);
+            ps.setInt(2,StockId);
+            int rowsEf = ps.executeUpdate();
+            return rowsEf==1;
+            }
 
         }catch (SQLException e){
             throw new RuntimeException(e);
         }
+        return true;
     }
     public List<Stock> loadAllStocksPerUser(int UserId) {
         List<Stock> stocks = new ArrayList<>();
         try {
-            PreparedStatement ps = this.connection.prepareStatement("SELECT Ticker from stocks s JOIN user_stock us ON us.Stock_id=s.Stock_id WHERE us.User_id=?");
+            PreparedStatement ps = this.connection.prepareStatement("SELECT * from stocks s JOIN user_stock us ON us.Stock_id=s.Stock_id WHERE us.User_id=?");
             ps.setInt(1,UserId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                stocks.add(new Stock(rs.getString("Ticker")));
+                stocks.add(new Stock(rs.getString("Ticker"),rs.getFloat("Price"),
+                        rs.getDouble("RSI"),rs.getString("Trend"),rs.getString("Pattern"),
+                        rs.getDouble("SMA50"),rs.getDouble("SMA150"),
+                        rs.getDate("TimeStamp")));
             }
 
         } catch (SQLException e) {
@@ -53,19 +65,47 @@ public class DbUtils {
         }
         return stocks;
     }
-    public void insertTicker(String ticker,int UserId) {
+    public boolean removeStockUser(int userid, String Ticker) {
+        try{
+            PreparedStatement ps = this.connection.prepareStatement("Select Stock_id FROM stocks WHERE Ticker=?");
+            ps.setString(1,Ticker);
+            ResultSet rs = ps.executeQuery();
+            int stockid;
+            if (rs.next()) {
+                stockid = rs.getInt("Stock_id");
+
+                ps = this.connection.prepareStatement("DELETE FROM user_stock WHERE User_id=? AND Stock_id=?");
+                ps.setInt(1, userid);
+                ps.setInt(2, stockid);
+                int rows = ps.executeUpdate();
+            }
+            return true;
+        }catch (SQLException e){
+            throw new RuntimeException(e);
+        }
+    }
+    public boolean insertTicker(Stock ticker,int UserId) {
         try{
             PreparedStatement ps = this.connection.prepareStatement("SELECT Stock_id FROM Stocks WHERE ticker = ?");
-            ps.setString(1, ticker);
+            ps.setString(1, ticker.getTicker());
             ResultSet rs = ps.executeQuery();
             if(rs.next()) {
                 int id = rs.getInt(1);
-                insertTickerUser(id,UserId);
+                return insertTickerUser(id,UserId);
             }else {
-                ps = this.connection.prepareStatement("INSERT INTO Stocks (Ticker) VALUES (?)");
-                ps.setString(1, ticker);
+                ps = this.connection.prepareStatement("INSERT INTO Stocks (Ticker,Price,RSI,Trend,Pattern,SMA50,SMA150,TimeStamp) VALUES (?,?,?,?,?,?,?,?)");
+                ps.setString(1, ticker.getTicker());
+                ps.setDouble(2, ticker.getPrice());
+                ps.setDouble(3, ticker.getRSI());
+                ps.setString(4, ticker.getTrend());
+                ps.setString(5, ticker.getPattern());
+                ps.setDouble(6,ticker.getSMA50());
+                ps.setDouble(7,ticker.getSMA150());
+                ps.setDate(8,ticker.getTimeStamp());
+
+
                 ps.executeUpdate();
-                insertTicker(ticker,UserId);
+                return insertTicker(ticker,UserId);
             }
         }catch (SQLException e){
             throw new RuntimeException(e);

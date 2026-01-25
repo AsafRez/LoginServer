@@ -1,59 +1,68 @@
 package org.example;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.example.User;
+
+import org.example.Classes.*;
+import org.example.Utils.*;
+import org.example.responses.BasicResponse;
+import org.example.responses.StocksResponse;
+import org.example.responses.UserResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Random;
-import org.example.DbUtils;
-import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+
+import static org.example.Utils.Errors.*;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(originPatterns = "http://localhost:[*]", allowCredentials = "true")
 public class GeneralController {
     @Autowired
     private DbUtils dbUtils;
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    @Autowired
+    private JwtUtils jwtUtils;
     @PostConstruct
     public void init() {
     }
-
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf().disable() // ביטול הגנת CSRF שחוסמת בקשות מ-React
-                .cors().and()      // הפעלת תמיכה ב-CORS בתוך מערכת האבטחה
-                .authorizeRequests()
-                .antMatchers("/Register").permitAll() // אפשר לכולם להירשם
-                .anyRequest().permitAll(); // זמנית, אפשר הכל כדי לוודא שזה עובד
-
-        return http.build();
-    }
     @RequestMapping("/Register")
-    public boolean Register(String username, String password,String email, String phone) {
+    public BasicResponse Register(String username, String password, String email, String phone) {
         if (phone.isBlank() || username.isBlank() || password.isBlank() ||email.isBlank()|| password.length() < 4 || username.length() < 4) {
-            return false;
+            return new BasicResponse(false,ERROR_MISSING_INFO);
         } else {
-            String hashedPassword = passwordEncoder.encode(password);
             if (!checkUsername(username)) {
-                return false;
+                return new BasicResponse(false,ERROR_USERNAME_TAKEN);
             } else {
+                String hashedPassword=generateMD5(username,password);
                 dbUtils.insertUser(username, hashedPassword, email, phone);
-                return true;
+                return new BasicResponse(true,null);
             }
         }
     }
+    private String generateMD5(String username, String password) {
+        try {
+            // שילוב שם המשתמש והסיסמה כפי שעשה המרצה
+            String source = username + password;
 
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            byte[] hashBytes = md.digest(source.getBytes(StandardCharsets.UTF_8));
+
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashBytes) {
+                sb.append(String.format("%02x", b)); // אותיות קטנות
+            }
+            return sb.toString();
+
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("MD5 algorithm not found", e);
+        }
+    }
     private boolean checkUsername(String username) {
         List<User> currentUsers=dbUtils.getAllUsers();
         for (User user : currentUsers) {
@@ -64,36 +73,75 @@ public class GeneralController {
         return true;
     }
     @RequestMapping("/save-to-DB")
-    public void saveToDB(
-            @RequestParam("ticks") List<String> ticks,
-            @RequestParam("userid") int userid) {
+    public BasicResponse saveToDB(
+            @RequestParam("ticks") String ticksJson,
+            @RequestHeader("Authorization") String header) {
+        try {
+            String token = header.substring(7);
+            int userId = jwtUtils.extractUserId(token);
+            ObjectMapper mapper = new ObjectMapper();
+            // הפיכת הטקסט חזרה לרשימה של אובייקטי Stock
+            List<Stock> ticks = mapper.readValue(ticksJson, new TypeReference<List<Stock>>() {
+            });
+            for (Stock tick : ticks) {
 
-        for(String tick : ticks) {
-            dbUtils.insertTicker(tick, userid);
+                if(!dbUtils.insertTicker(tick, userId)){
+                    return new BasicResponse(false,ERROR_DB_NOT_UPDATED);
+                }
+            }
+            return new BasicResponse(true,null);
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+        return new BasicResponse(true,null);
     }
 
     @RequestMapping("/Load-From-DB")
-    public List<Stock> loadFromDB(int userid) {
-        List<Stock> tickers=dbUtils.loadAllStocksPerUser(userid);
-        System.out.println("List content: " + tickers);
-        return tickers;
+    public BasicResponse loadFromDB(@RequestHeader("Authorization") String header) {
+        String token = header.substring(7);
+        int userId = jwtUtils.extractUserId(token);
+        List<Stock> tickers = dbUtils.loadAllStocksPerUser(userId);
+        if (tickers != null) {
+            return new StocksResponse(true,null,tickers) ;
+        }
+        return new BasicResponse(false,ERROR_DATABASE);
+    }
+    @RequestMapping("/check-session")
+    public BasicResponse checkSession(
+            @CookieValue(name = "token", required = false) String token) {
+
+        if (token != null && !token.isBlank()) {
+            return new UserResponse(true, null, null, token);
+        }
+        return new BasicResponse(false, ERROR_WRONG_INFO);
+    }
+    @RequestMapping("/Remove-Stock")
+    public BasicResponse removeStock(@RequestHeader("Authorization") String header, String Ticker) {
+        String token = header.substring(7);
+        int userId = jwtUtils.extractUserId(token);
+        if(dbUtils.removeStockUser(userId, Ticker)){
+            return new BasicResponse(true,null);
+        }
+        return new BasicResponse(false,ERROR_DATABASE);
     }
     @RequestMapping("/Login")
-    public int Login(String username, String password) {
+    public BasicResponse Login(@RequestParam("username") String username, @RequestParam("password") String password) {
         if (username.isBlank()||password.isBlank()) {
-            return 0;
+            return new BasicResponse(false,ERROR_MISSING_INFO);
         }else{
-            String hashedPassword = passwordEncoder.encode(password);
+            String hashedPassword =generateMD5(username,password) ;
             List<User> usersLIST=dbUtils.getAllUsers();
             for(User user:usersLIST) {
-                boolean isMatch = passwordEncoder.matches(password,user.getPassword());
-                if(user.getUserName().equals(username)&&isMatch) {
-                    return user.getId();
+
+                if(user.getUserName().equals(username)&&user.getPassword().equals(hashedPassword)) {
+                    String token = jwtUtils.generateToken(username, user.getId());
+
+                    return new UserResponse(true,null,user,token);
                 }
             }
 
-            return 0;}
+            return new BasicResponse(false,ERROR_WRONG_INFO);}
     }
 
 
