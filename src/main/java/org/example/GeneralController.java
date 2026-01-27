@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -72,29 +73,31 @@ public class GeneralController {
         }
         return true;
     }
-    @RequestMapping("/save-to-DB")
-    public BasicResponse saveToDB(
-            @RequestParam("ticks") String ticksJson,
-            @RequestHeader("Authorization") String header) {
+    @PostMapping("/save-to-DB")
+    public BasicResponse saveToDB(@RequestBody Map<String, List<Stock>> payload,
+                                  @RequestHeader("Authorization") String header) {
+        List<Stock> ticks = payload.get("ticks");
+
+        if (ticks == null || ticks.isEmpty()) {
+            return new BasicResponse(false, ERROR_MISSING_INFO);
+        }
+
         try {
             String token = header.substring(7);
             int userId = jwtUtils.extractUserId(token);
-            ObjectMapper mapper = new ObjectMapper();
-            // הפיכת הטקסט חזרה לרשימה של אובייקטי Stock
-            List<Stock> ticks = mapper.readValue(ticksJson, new TypeReference<List<Stock>>() {
-            });
-            for (Stock tick : ticks) {
 
-                if(!dbUtils.insertTicker(tick, userId)){
-                    return new BasicResponse(false,ERROR_DB_NOT_UPDATED);
+            // 2. אין צורך ב-ObjectMapper! פשוט רצים על הרשימה הקיימת
+            for (Stock tick : ticks) {
+                if (!dbUtils.insertTicker(tick, userId)) {
+                    return new BasicResponse(false, ERROR_DB_NOT_UPDATED);
                 }
             }
-            return new BasicResponse(true,null);
+            return new BasicResponse(true, null);
 
         } catch (Exception e) {
             e.printStackTrace();
+            return new BasicResponse(false, ERROR_DATABASE); // החזרת false בשגיאה
         }
-        return new BasicResponse(true,null);
     }
 
     @RequestMapping("/Load-From-DB")

@@ -19,11 +19,61 @@ public class Stock {
     private double SMA50;
     @JsonProperty("SMA150")
     private double SMA150;
-    @JsonProperty("timeStape")
+    @JsonProperty("Reasoning")
+    private String Reasoning;
+    @JsonProperty("Resistance")
+    private double Resistance;
+    @JsonProperty("Expectation")
+    private String Expectation;
+    @JsonProperty("timeStamp")
     private Date TimeStamp;
+    @JsonProperty("Pattern Info")
+    private String patternInfo;
+    @JsonProperty("Action")
+    private String action;
 
     public double getSMA50() {
         return SMA50;
+    }
+
+    public String getReasoning() {
+        return Reasoning;
+    }
+
+    public void setReasoning(String reasoning) {
+        Reasoning = reasoning;
+    }
+
+    public double getResistance() {
+        return Resistance;
+    }
+
+    public void setResistance(double resistance) {
+        Resistance = resistance;
+    }
+
+    public String getExpectation() {
+        return Expectation;
+    }
+
+    public void setExpectation(String expectation) {
+        Expectation = expectation;
+    }
+
+    public String getPatternInfo() {
+        return patternInfo;
+    }
+
+    public void setPatternInfo(String patternInfo) {
+        this.patternInfo = patternInfo;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    public void setAction(String action) {
+        this.action = action;
     }
 
     public void setSMA50(double SMA50) {
@@ -36,6 +86,22 @@ public class Stock {
 
     public void setSMA150(double SMA150) {
         this.SMA150 = SMA150;
+    }
+
+    public Stock(String ticker, float price, double RSI, String trend, String pattern, double SMA50, double SMA150, String reasoning, double resistance, String expectation, Date timeStamp, String patternInfo, String action) {
+        Ticker = ticker;
+        Price = price;
+        this.RSI = RSI;
+        Trend = trend;
+        Pattern = pattern;
+        this.SMA50 = SMA50;
+        this.SMA150 = SMA150;
+        Reasoning = reasoning;
+        Resistance = resistance;
+        Expectation = expectation;
+        TimeStamp = timeStamp;
+        this.patternInfo = patternInfo;
+        this.action = action;
     }
 
     public Stock(String ticker, float price, double RSI, String trend, String pattern, double sma50, double sma150, Date timeStamp) {

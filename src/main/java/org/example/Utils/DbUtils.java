@@ -57,7 +57,8 @@ public class DbUtils {
                 stocks.add(new Stock(rs.getString("Ticker"),rs.getFloat("Price"),
                         rs.getDouble("RSI"),rs.getString("Trend"),rs.getString("Pattern"),
                         rs.getDouble("SMA50"),rs.getDouble("SMA150"),
-                        rs.getDate("TimeStamp")));
+                        rs.getString("Reasoning"),rs.getFloat("Resistance"),
+                        rs.getString("Expectation"),rs.getDate("TimeStamp"),rs.getString("Pattern Info"),rs.getString("Action")));
             }
 
         } catch (SQLException e) {
@@ -84,28 +85,38 @@ public class DbUtils {
             throw new RuntimeException(e);
         }
     }
-    public boolean insertTicker(Stock ticker,int UserId) {
+    public boolean insertTicker(Stock stock,int UserId) {
         try{
             PreparedStatement ps = this.connection.prepareStatement("SELECT Stock_id FROM Stocks WHERE ticker = ?");
-            ps.setString(1, ticker.getTicker());
+            ps.setString(1, stock.getTicker());
             ResultSet rs = ps.executeQuery();
             if(rs.next()) {
                 int id = rs.getInt(1);
                 return insertTickerUser(id,UserId);
             }else {
-                ps = this.connection.prepareStatement("INSERT INTO Stocks (Ticker,Price,RSI,Trend,Pattern,SMA50,SMA150,TimeStamp) VALUES (?,?,?,?,?,?,?,?)");
-                ps.setString(1, ticker.getTicker());
-                ps.setDouble(2, ticker.getPrice());
-                ps.setDouble(3, ticker.getRSI());
-                ps.setString(4, ticker.getTrend());
-                ps.setString(5, ticker.getPattern());
-                ps.setDouble(6,ticker.getSMA50());
-                ps.setDouble(7,ticker.getSMA150());
-                ps.setDate(8,ticker.getTimeStamp());
-
-
+                ps = this.connection.prepareStatement("INSERT INTO Stocks (" +
+                        "Ticker,Price,RSI,Trend,Pattern,SMA50,SMA150,TimeStamp,Reasoning," +
+                        "Resistance,Expectation,`Pattern Info`,Action)" +
+                        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                ps.setString(1, stock.getTicker());
+                ps.setDouble(2, stock.getPrice());
+                ps.setDouble(3, stock.getRSI());
+                ps.setString(4, stock.getTrend());
+                ps.setString(5, stock.getPattern());
+                ps.setDouble(6,stock.getSMA50());
+                ps.setDouble(7,stock.getSMA150());
+                ps.setString(9,stock.getReasoning());
+                ps.setDouble(10,stock.getResistance());
+                ps.setString(11,stock.getExpectation());
+                ps.setString(12,stock.getPatternInfo());
+                ps.setString(13,stock.getAction());
+                if (stock.getTimeStamp() != null) {
+                    ps.setTimestamp(8, new java.sql.Timestamp(stock.getTimeStamp().getTime()));
+                } else {
+                    ps.setTimestamp(8, new java.sql.Timestamp(System.currentTimeMillis()));
+                }
                 ps.executeUpdate();
-                return insertTicker(ticker,UserId);
+                return insertTicker(stock,UserId);
             }
         }catch (SQLException e){
             throw new RuntimeException(e);

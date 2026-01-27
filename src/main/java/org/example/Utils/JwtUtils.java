@@ -22,11 +22,20 @@ public class JwtUtils {
     }
 
     public int extractUserId(String token) {
-        Claims claims = Jwts.parser()
-                .setSigningKey(getSigningKey())
-                .parseClaimsJws(token)
-                .getBody();
-        return claims.get("User_id", Integer.class);
+        try {
+            Claims claims = Jwts.parser()
+                    .setSigningKey(getSigningKey())
+                    .parseClaimsJws(token)
+                    .getBody();
+
+            Integer userId = claims.get("User_id", Integer.class);
+            return (userId != null) ? userId : -1; // החזרת ערך שלילי אם ה-ID חסר
+
+        } catch (Exception e) {
+            // אם הטוקן פג תוקף או שונה בדרך, נחזיר -1 כדי לסמן שהמשתמש לא מזוהה
+            System.err.println("JWT Extraction Error: " + e.getMessage());
+            return -1;
+        }
     }
 
     public String generateToken(String username, int userId) {
