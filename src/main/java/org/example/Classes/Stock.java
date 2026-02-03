@@ -27,8 +27,8 @@ public class Stock {
     private String Expectation;
     @JsonProperty("timeStamp")
     private Date TimeStamp;
-    @JsonProperty("Pattern Info")
-    private String patternInfo;
+    @JsonProperty("Vol")
+    private String vol;
     @JsonProperty("Action")
     private String action;
 
@@ -60,12 +60,12 @@ public class Stock {
         Expectation = expectation;
     }
 
-    public String getPatternInfo() {
-        return patternInfo;
+    public String getVol() {
+        return vol;
     }
 
-    public void setPatternInfo(String patternInfo) {
-        this.patternInfo = patternInfo;
+    public void setVol(String vol) {
+        this.vol = vol;
     }
 
     public String getAction() {
@@ -88,7 +88,7 @@ public class Stock {
         this.SMA150 = SMA150;
     }
 
-    public Stock(String ticker, float price, double RSI, String trend, String pattern, double SMA50, double SMA150, String reasoning, double resistance, String expectation, Date timeStamp, String patternInfo, String action) {
+    public Stock(String ticker, float price, double RSI, String trend, String pattern, double SMA50, double SMA150, String reasoning, double resistance, String expectation, Date timeStamp, String vol, String action) {
         Ticker = ticker;
         Price = price;
         this.RSI = RSI;
@@ -100,7 +100,7 @@ public class Stock {
         Resistance = resistance;
         Expectation = expectation;
         TimeStamp = timeStamp;
-        this.patternInfo = patternInfo;
+        this.vol = vol;
         this.action = action;
     }
 

@@ -10,7 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class DbUtils {
+public class
+DbUtils {
     private Connection connection;
     @PostConstruct
     public void init() {
@@ -96,7 +97,7 @@ public class DbUtils {
             }else {
                 ps = this.connection.prepareStatement("INSERT INTO Stocks (" +
                         "Ticker,Price,RSI,Trend,Pattern,SMA50,SMA150,TimeStamp,Reasoning," +
-                        "Resistance,Expectation,`Pattern Info`,Action)" +
+                        "Resistance,Expectation,Vol,Action)" +
                         " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
                 ps.setString(1, stock.getTicker());
                 ps.setDouble(2, stock.getPrice());
@@ -108,7 +109,7 @@ public class DbUtils {
                 ps.setString(9,stock.getReasoning());
                 ps.setDouble(10,stock.getResistance());
                 ps.setString(11,stock.getExpectation());
-                ps.setString(12,stock.getPatternInfo());
+                ps.setString(12,stock.getVol());
                 ps.setString(13,stock.getAction());
                 if (stock.getTimeStamp() != null) {
                     ps.setTimestamp(8, new java.sql.Timestamp(stock.getTimeStamp().getTime()));

@@ -74,9 +74,10 @@ public class GeneralController {
         return true;
     }
     @PostMapping("/save-to-DB")
-    public BasicResponse saveToDB(@RequestBody Map<String, List<Stock>> payload,
+    public BasicResponse saveToDB(@RequestBody Map<String, Object> payload,
                                   @RequestHeader("Authorization") String header) {
-        List<Stock> ticks = payload.get("ticks");
+        List<Stock> ticks = (List<Stock>) payload.get("ticks");
+        String time= (String) payload.get("time");
 
         if (ticks == null || ticks.isEmpty()) {
             return new BasicResponse(false, ERROR_MISSING_INFO);
