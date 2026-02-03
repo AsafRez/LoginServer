@@ -23,7 +23,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import static org.example.Utils.Errors.*;
 
 @RestController
-@CrossOrigin(originPatterns = "http://localhost:[*]", allowCredentials = "true")
+@CrossOrigin(origins = "https://stock-scanner-user.onrender.com", allowCredentials = "true")
 public class GeneralController {
     @Autowired
     private DbUtils dbUtils;
