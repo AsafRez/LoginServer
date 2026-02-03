@@ -16,8 +16,10 @@ DbUtils {
     @PostConstruct
     public void init() {
         try {
-            String schema = "stocks_watcher";
-            String url = "jdbc:mysql://localhost:3306/" + schema;
+            String url = System.getenv("DB_URL");
+            String user = System.getenv("DB_USERNAME");
+            String pass = System.getenv("DB_PASSWORD");
+            Connection conn = DriverManager.getConnection(url, user, pass);
 
             this.connection = DriverManager.getConnection(url, "root", "1234");
 
