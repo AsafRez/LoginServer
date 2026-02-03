@@ -32,6 +32,10 @@ public class GeneralController {
     @PostConstruct
     public void init() {
     }
+    @RequestMapping("/")
+    public String index() {
+        return "Hello World";
+    }
     @RequestMapping("/Register")
     public BasicResponse Register(String username, String password, String email, String phone) {
         if (phone.isBlank() || username.isBlank() || password.isBlank() ||email.isBlank()|| password.length() < 4 || username.length() < 4) {
