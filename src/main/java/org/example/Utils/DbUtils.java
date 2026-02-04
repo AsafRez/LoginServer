@@ -136,10 +136,11 @@ DbUtils {
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         try {
-            PreparedStatement ps = this.connection.prepareStatement("SELECT User_id,password,UserName,Email,Phone from users");
+            PreparedStatement ps = this.connection.prepareStatement("SELECT user_id, password, username, email, phone from users");
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                users.add(new User(rs.getInt("User_id"),rs.getString("UserName"),rs.getString("password"),rs.getString("Email"),rs.getString("Phone")));
+                users.add(new User(rs.getInt("user_id"),rs.getString("username"),rs.getString("password"),
+                        rs.getString("email"),rs.getString("phone")));
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -149,7 +150,7 @@ DbUtils {
     public void insertUser(String username, String password, String email,String phone) {
         try {
             PreparedStatement ps = this.connection.prepareStatement(
-                    "INSERT INTO users (UserName, Password,Email,Phone) " +
+                    "INSERT INTO users (username, password,email,phone) " +
                     "VALUES (?, ?, ?,?)");
             ps.setString(1, username);
             ps.setString(2, password);
