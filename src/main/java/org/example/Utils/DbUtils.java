@@ -38,24 +38,80 @@ DbUtils {
             e.printStackTrace();
         }
     }
-    public boolean insertTickerUser(int StockId,int UserId) {
-        try{
-            PreparedStatement ps=this.connection.prepareStatement("SELECT * FROM user_stock where user_id=? AND stock_id=?");
-            ps.setInt(1,UserId);
-            ps.setInt(2,StockId);
-            ResultSet rs=ps.executeQuery();
-            if(!rs.next()){
-            ps = this.connection.prepareStatement("INSERT INTO user_stock (user_id,stock_id) VALUES(?,?)");
-            ps.setInt(1,UserId);
-            ps.setInt(2,StockId);
-            int rowsEf = ps.executeUpdate();
-            return rowsEf==1;
-            }
+    public boolean insertTicker(Stock stock, int userId) {
+        try {
+            // שימוש ב-UPPER כדי למנוע כפילויות של אותיות גדולות/קטנות
+            PreparedStatement ps = this.connection.prepareStatement(
+                    "SELECT stock_id FROM stocks WHERE UPPER(ticker) = UPPER(?)");
+            ps.setString(1, stock.getTicker());
+            ResultSet rs = ps.executeQuery();
 
-        }catch (SQLException e){
-            throw new RuntimeException(e);
+            int id;
+            if (rs.next()) {
+                id = rs.getInt(1);
+            } else {
+                // הכנסת מניה חדשה - הכל בכתב קטן (lowercase)
+                ps = this.connection.prepareStatement("INSERT INTO stocks (" +
+                        "ticker, price, rsi, trend, pattern, sma50, sma150, timestamp, reasoning," +
+                        "resistance, expectation, vol, action)" +
+                        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+
+                ps.setString(1, stock.getTicker().toUpperCase()); // שמירה תמיד באותיות גדולות
+                ps.setDouble(2, stock.getPrice());
+                ps.setDouble(3, stock.getRSI());
+                ps.setString(4, stock.getTrend());
+                ps.setString(5, stock.getPattern());
+                ps.setDouble(6, stock.getSMA50());
+                ps.setDouble(7, stock.getSMA150());
+                ps.setString(9, stock.getReasoning());
+                ps.setDouble(10, stock.getResistance());
+                ps.setString(11, stock.getExpectation());
+                ps.setString(12, stock.getVol());
+                ps.setString(13, stock.getAction());
+
+                if (stock.getTimeStamp() != null) {
+                    ps.setTimestamp(8, new java.sql.Timestamp(stock.getTimeStamp().getTime()));
+                } else {
+                    ps.setTimestamp(8, new java.sql.Timestamp(System.currentTimeMillis()));
+                }
+
+                ps.executeUpdate();
+                ResultSet generatedKeys = ps.getGeneratedKeys();
+                if (generatedKeys.next()) {
+                    id = generatedKeys.getInt(1);
+                } else {
+                    throw new SQLException("Failed to get generated stock ID");
+                }
+            }
+            // שלב סופי: חיבור המניה למשתמש
+            return insertTickerUser(id, userId);
+
+        } catch (SQLException e) {
+            System.err.println("❌ SQL Error in insertTicker: " + e.getMessage());
+            return false;
         }
-        return true;
+    }
+
+    public boolean insertTickerUser(int stockId, int userId) {
+        try {
+            // בדיקה אם הקשר כבר קיים
+            PreparedStatement ps = this.connection.prepareStatement(
+                    "SELECT * FROM user_stock WHERE user_id = ? AND stock_id = ?");
+            ps.setInt(1, userId);
+            ps.setInt(2, stockId);
+            ResultSet rs = ps.executeQuery();
+
+            if (!rs.next()) {
+                ps = this.connection.prepareStatement("INSERT INTO user_stock (user_id, stock_id) VALUES(?, ?)");
+                ps.setInt(1, userId);
+                ps.setInt(2, stockId);
+                return ps.executeUpdate() == 1;
+            }
+            return true; // כבר קיים
+        } catch (SQLException e) {
+            System.err.println("❌ SQL Error in insertTickerUser: " + e.getMessage());
+            return false;
+        }
     }
     public List<Stock> loadAllStocksPerUser(int UserId) {
         List<Stock> stocks = new ArrayList<>();
@@ -95,56 +151,7 @@ DbUtils {
             throw new RuntimeException(e);
         }
     }
-    public boolean insertTicker(Stock stock, int userId) {
-        try {
-            // 1. הכל בכתב קטן (lowercase)
-            PreparedStatement ps = this.connection.prepareStatement("SELECT stock_id FROM stocks WHERE ticker = ?");
-            ps.setString(1, stock.getTicker());
-            ResultSet rs = ps.executeQuery();
 
-            if (rs.next()) {
-                int id = rs.getInt(1); // עדיף להשתמש באינדקס 1 כמו שעשית כדי למנוע בעיות שמות
-                return insertTickerUser(id, userId);
-            } else {
-                // 2. שאילתת Insert בכתב קטן
-                ps = this.connection.prepareStatement("INSERT INTO stocks (" +
-                        "ticker, price, rsi, trend, pattern, sma50, sma150, timestamp, reasoning," +
-                        "resistance, expectation, vol, action)" +
-                        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS); // הוספת בקשה ל-ID
-
-                ps.setString(1, stock.getTicker());
-                ps.setDouble(2, stock.getPrice());
-                ps.setDouble(3, stock.getRSI());
-                ps.setString(4, stock.getTrend());
-                ps.setString(5, stock.getPattern());
-                ps.setDouble(6, stock.getSMA50());
-                ps.setDouble(7, stock.getSMA150());
-                ps.setString(9, stock.getReasoning());
-                ps.setDouble(10, stock.getResistance());
-                ps.setString(11, stock.getExpectation());
-                ps.setString(12, stock.getVol());
-                ps.setString(13, stock.getAction());
-
-                if (stock.getTimeStamp() != null) {
-                    ps.setTimestamp(8, new java.sql.Timestamp(stock.getTimeStamp().getTime()));
-                } else {
-                    ps.setTimestamp(8, new java.sql.Timestamp(System.currentTimeMillis()));
-                }
-
-                ps.executeUpdate();
-
-                ResultSet generatedKeys = ps.getGeneratedKeys();
-                if (generatedKeys.next()) {
-                    int newId = generatedKeys.getInt(1);
-                    return insertTickerUser(newId, userId);
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("❌ Error in insertTicker: " + e.getMessage());
-            throw new RuntimeException(e);
-        }
-        return false;
-    }
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         try {
