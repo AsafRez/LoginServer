@@ -128,7 +128,7 @@ DbUtils {
                         rs.getString("reasoning"),rs.getFloat("resistance"),
                         rs.getString("expectation"),rs.getDate("timeStamp"),rs.getString("pattern info"),rs.getString("Action")));
             }
-
+            System.out.println("DBUG:"+stocks.size()+stocks);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
