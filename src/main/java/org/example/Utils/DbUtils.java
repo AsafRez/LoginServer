@@ -40,6 +40,7 @@ DbUtils {
     }
     public boolean insertTicker(Stock stock, int userId) {
         try {
+            System.out.println("DEBUG: Trying to insert stock for User ID: " + userId); // שורת בדיקה
             // שימוש ב-UPPER כדי למנוע כפילויות של אותיות גדולות/קטנות
             PreparedStatement ps = this.connection.prepareStatement(
                     "SELECT stock_id FROM stocks WHERE UPPER(ticker) = UPPER(?)");
