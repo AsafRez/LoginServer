@@ -83,7 +83,7 @@ public class GeneralController {
                                   @RequestHeader("Authorization") String header) {
         List<Stock> ticks = (List<Stock>) payload.get("ticks");
         String time= (String) payload.get("time");
-
+        System.out.println(time);
         if (ticks == null || ticks.isEmpty()) {
             return new BasicResponse(false, ERROR_MISSING_INFO);
         }
@@ -91,7 +91,7 @@ public class GeneralController {
         try {
             String token = header.substring(7);
             int userId = jwtUtils.extractUserId(token);
-
+            System.out.println(userId);
             // 2. אין צורך ב-ObjectMapper! פשוט רצים על הרשימה הקיימת
             for (Stock tick : ticks) {
                 if (!dbUtils.insertTicker(tick, userId)) {
