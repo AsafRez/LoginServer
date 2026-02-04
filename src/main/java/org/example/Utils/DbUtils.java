@@ -16,15 +16,22 @@ DbUtils {
     @PostConstruct
     public void init() {
         try {
+            // 1. שליפת המשתנים שהגדרנו ב-Render
             String url = System.getenv("SPRING_DATASOURCE_URL");
             String user = System.getenv("SPRING_DATASOURCE_USERNAME");
             String pass = System.getenv("SPRING_DATASOURCE_PASSWORD");
-            Connection conn = DriverManager.getConnection(url, user, pass);
 
-            this.connection = DriverManager.getConnection(url, "root", "1234");
+            // 2. בדיקה שהמשתנים אכן הגיעו (יופיע בלוגים של Render)
+            if (url == null || user == null || pass == null) {
+                System.err.println("❌ ERROR: Missing Environment Variables for Database!");
+                return;
+            }
+
+            // 3. יצירת החיבור היחיד והנכון
+            this.connection = DriverManager.getConnection(url, user, pass);
 
             if (this.connection != null) {
-                System.out.println("✅ Connection established successfully");
+                System.out.println("✅ Connection established successfully to: " + url);
             }
         } catch (SQLException e) {
             System.err.println("❌ CRITICAL: Database connection failed!");
