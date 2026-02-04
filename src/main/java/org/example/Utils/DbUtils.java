@@ -121,11 +121,12 @@ DbUtils {
             ps.setInt(1,UserId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                stocks.add(new Stock(rs.getString("Ticker"),rs.getFloat("Price"),
-                        rs.getDouble("RSI"),rs.getString("Trend"),rs.getString("Pattern"),
-                        rs.getDouble("SMA50"),rs.getDouble("SMA150"),
-                        rs.getString("Reasoning"),rs.getFloat("Resistance"),
-                        rs.getString("Expectation"),rs.getDate("TimeStamp"),rs.getString("Pattern Info"),rs.getString("Action")));
+                stocks.add(new Stock(rs.getString("ticker"),rs.getFloat("price"),
+                        rs.getDouble("rsi"),rs.getString("trend"),
+                        rs.getString("pattern"),
+                        rs.getDouble("sma50"),rs.getDouble("sma150"),
+                        rs.getString("reasoning"),rs.getFloat("resistance"),
+                        rs.getString("expectation"),rs.getDate("timeStamp"),rs.getString("pattern info"),rs.getString("Action")));
             }
 
         } catch (SQLException e) {
