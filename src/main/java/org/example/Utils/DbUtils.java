@@ -97,14 +97,14 @@ DbUtils {
     }
     public boolean insertTicker(Stock stock,int UserId) {
         try{
-            PreparedStatement ps = this.connection.prepareStatement("SELECT Stock_id FROM Stocks WHERE ticker = ?");
+            PreparedStatement ps = this.connection.prepareStatement("SELECT Stock_id FROM stocks WHERE ticker = ?");
             ps.setString(1, stock.getTicker());
             ResultSet rs = ps.executeQuery();
             if(rs.next()) {
                 int id = rs.getInt(1);
                 return insertTickerUser(id,UserId);
             }else {
-                ps = this.connection.prepareStatement("INSERT INTO Stocks (" +
+                ps = this.connection.prepareStatement("INSERT INTO stocks (" +
                         "Ticker,Price,RSI,Trend,Pattern,SMA50,SMA150,TimeStamp,Reasoning," +
                         "Resistance,Expectation,Vol,Action)" +
                         " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
@@ -136,7 +136,7 @@ DbUtils {
     public List<User> getAllUsers() {
         List<User> users = new ArrayList<>();
         try {
-            PreparedStatement ps = this.connection.prepareStatement("SELECT User_id,password,UserName,Email,Phone from Users");
+            PreparedStatement ps = this.connection.prepareStatement("SELECT User_id,password,UserName,Email,Phone from users");
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 users.add(new User(rs.getInt("User_id"),rs.getString("UserName"),rs.getString("password"),rs.getString("Email"),rs.getString("Phone")));
