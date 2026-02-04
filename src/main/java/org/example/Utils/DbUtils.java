@@ -16,9 +16,9 @@ DbUtils {
     @PostConstruct
     public void init() {
         try {
-            String url = System.getenv("DB_URL");
-            String user = System.getenv("DB_USERNAME");
-            String pass = System.getenv("DB_PASSWORD");
+            String url = System.getenv("SPRING_DATASOURCE_URL");
+            String user = System.getenv("SPRING_DATASOURCE_USERNAME");
+            String pass = System.getenv("SPRING_DATASOURCE_PASSWORD");
             Connection conn = DriverManager.getConnection(url, user, pass);
 
             this.connection = DriverManager.getConnection(url, "root", "1234");
