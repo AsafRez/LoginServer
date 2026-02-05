@@ -2,6 +2,7 @@ package org.example.Utils;
 
 import org.example.Classes.Stock;
 import org.example.Classes.User;
+import org.example.responses.UserResponse;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
@@ -167,6 +168,22 @@ DbUtils {
             throw new RuntimeException(e);
         }
         return users;
+    }
+    public User getUser(String username,String password) {
+        try {
+            PreparedStatement ps = this.connection.prepareStatement("SELECT user_id, username,password, email, phone from users where " +
+                    "username=? and password=?");
+            ps.setString(1,username);
+            ps.setString(2,password);
+            ResultSet rs = ps.executeQuery();
+            if(rs.next()) {
+                return new User(rs.getInt(1),rs.getString(2),rs.getString(3),rs.getString(4),rs.getString(5));
+            }
+
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
     public void insertUser(String username, String password, String email,String phone) {
         try {

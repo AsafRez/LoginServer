@@ -19,13 +19,6 @@ public class User {
         this.password = password;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
 
     public String getUserName() {
         return username;
@@ -41,7 +34,14 @@ public class User {
         this.password = password;
         this.email = email;
         this.tel = tel;
+    }
 
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public String getTel() {

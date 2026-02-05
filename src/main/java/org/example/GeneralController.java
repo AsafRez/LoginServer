@@ -1,6 +1,9 @@
 package org.example;
 
-
+import com.sendgrid.*;
+import com.sendgrid.helpers.mail.Mail;
+import com.sendgrid.helpers.mail.objects.Content;
+import com.sendgrid.helpers.mail.objects.Email;
 import org.example.Classes.*;
 import org.example.Utils.*;
 import org.example.responses.BasicResponse;
@@ -11,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import javax.annotation.PostConstruct;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -136,94 +140,49 @@ public class GeneralController {
     }
     @RequestMapping("/Login")
     public BasicResponse Login(@RequestParam("username") String username, @RequestParam("password") String password) {
-        if (username.isBlank()||password.isBlank()) {
-            return new BasicResponse(false,ERROR_MISSING_INFO);
-        }else{
-            String hashedPassword =generateMD5(username,password) ;
-            List<User> usersLIST=dbUtils.getAllUsers();
-            for(User user:usersLIST) {
+        if (username.isBlank() || password.isBlank()) {
+            return new BasicResponse(false, ERROR_MISSING_INFO);
+        } else {
+            String hashedPassword = generateMD5(username, password);
+            User valid = dbUtils.getUser(username, hashedPassword);
+            if (valid != null) {
+                sendEmail(valid);
+            String token = jwtUtils.generateToken(username, valid.getId());
 
-                if(user.getUserName().equals(username)&&user.getPassword().equals(hashedPassword)) {
-                    String token = jwtUtils.generateToken(username, user.getId());
-
-                    return new UserResponse(true,null,user,token);
-                }
-            }
-
+            return new UserResponse(true, null, valid, token);
+        }
             return new BasicResponse(false,ERROR_WRONG_INFO);}
+
     }
 
+    private void sendEmail(User userLogin){
+        int OTP=generateOTP();
+        String recipientEmail = userLogin.getEmail();
 
-    private int sendSMS(String tel, int OTPSend) {
-        // 1. הגדרת ה-URL המלא (כבר כולל את הפרמטרים בתוכו)
-        String serverURL = "https://backend-qcf9.onrender.com/send-sms?token=Almog464@&phoneNumber="
-                + tel + "&message=Hello your one time password is:" + OTPSend
-                + " please do not share it with others PLZZZZZZ";
-        // 2. יצירת אובייקט RestTemplate
-        RestTemplate restTemplate = new RestTemplate();
-        try {
-            ResponseEntity<String> response = restTemplate.postForEntity(serverURL, null, String.class);
+        Email from = new Email("justsportsonline@gmail.com");
+        Email to = new Email(recipientEmail);
+        Content content = new Content("text/plain","Hello "+userLogin.getUserName());
+        Mail mail = new Mail(from, "Checking", to, content);
 
-            // בדיקה אם הסטטוס קוד הוא 200 (OK)
-            if (response.getStatusCode().is2xxSuccessful()) {
-                System.out.println("SMS נשלח בהצלחה: " + response.getBody());
-                return 1; // החזרת הצלחה
-            } else {
-                return 0; // נכשל
-            }
-        } catch (Exception e) {
-            System.err.println("שגיאה בשליחת SMS: " + e.getMessage());
-            return -1; // שגיאת רשת
+        SendGrid sg=new SendGrid(System.getenv("SENDGRID_API_KEY"));
+        Request request = new Request();
+
+        try{
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            Response res=sg.api(request);
+        }catch(IOException e){
+            e.printStackTrace();
         }
+
+
     }
     private int generateOTP(){
         Random random = new Random();
         int otp = random.nextInt(10000,99999);
         return otp;
     }
-//    @RequestMapping("/check-username")
-//    public UserAvailableResponse checkusername(String username) {
-//        if (username.isBlank()) {
-//            return new UserAvailableResponse(false, ERROR_NO_USERNAME, false);
-//        }
-//        if(dbUtils.doesUsernameExist(username)){
-//        return new UserAvailableResponse(false, ERROR_USERNAME_EXISTS, false);
-//            }
-//            if (username.length() < 4) {
-//                return new UserAvailableResponse(false, ERROR_SHORT_USERNAME, false);
-//            }
-//
-//        return new UserAvailableResponse(true,0,true);
-//
-//    }
-//    @GetMapping("/Size")
-//    public void getSize(){
-//        System.out.println(usersLIST.size());
-//    }
-//    @GetMapping("/get-all-users")
-//    public UsersResponse getAllUsers() {
-//        List<User> usersFromDB = dbUtils.getAllUsers();
-//
-//        return new UsersResponse(true, null, usersFromDB);
-//    }
-////    public UsersResponse getAllUsers(){
-////        return new UsersResponse(true,null,usersLIST);
-////    }
-//    @RequestMapping("/create-user")
-//    public BasicResponse createUser(String username, String password) {
-//        if(username.isBlank() ){
-//            return new BasicResponse(false,ERROR_NO_USERNAME);
-//        }
-//        if(password.isBlank() ){
-//            return new BasicResponse(false,ERROR_NO_PASSWORD);
-//        }
-//        if(password.length()<4){
-//            return new BasicResponse(false,ERROR_SHORT_PASSWORD);
-//        }
-//            if(dbUtils.doesUsernameExist(username)){
-//                    return new BasicResponse(false,ERROR_USERNAME_EXISTS);
-//                }
-//        dbUtils.addUser(username,password);
-//        return new BasicResponse(true,0);
-//    }
-}
+    }
+
+
